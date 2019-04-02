@@ -11,17 +11,6 @@ using TwitchLib.Api;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 
-public class GambleConfiguration
-{
-    public string Channel { get; set; }
-
-    public TimeSpan PointAwardInterval { get; set; }
-
-    public long PointAwardAmount { get; set; }
-
-    public string Currency { get; set; }
-}
-
 public class GamblingModule : BotModule
 {
     private TwitchClient _twitchClient;
@@ -48,7 +37,7 @@ public class GamblingModule : BotModule
 
     public override async Task Initialize() {
         var configs = await ConfigAccess.GetConfigurations();
-        configs.ForEach(config =>  {
+        configs.ForEach(config => {
             var task = Task.Run(async () =>
             {
                 while (true)
@@ -59,16 +48,16 @@ public class GamblingModule : BotModule
                     await Access.SetDefaultPoints(config.Channel, chatters);
                     await Access.AddPoints(config.Channel, config.PointAwardAmount);
 
-                    Debug("Awarded points! Waiting again.");
+                    Debug($"Awarded points for {config.Channel}! Waiting again.");
                     var endTime = DateTime.Now;
                     var elapsed = endTime - startTime;
-                    if (elapsed > config.PointAwardInterval)
+                    if (elapsed > TimeSpan.FromMinutes(config.PointAwardInterval))
                     {
                         Debug("Warning. Execution exceeding wait interval.");
                         continue;
                     }
 
-                    await Task.Delay(config.PointAwardInterval - elapsed);
+                    await Task.Delay(TimeSpan.FromMinutes(config.PointAwardInterval) - elapsed);
                 }
             });
         });
@@ -106,7 +95,6 @@ public class GamblingModule : BotModule
 
     public async Task<long> CalculatePoints(string channel, string username, string verb)
     {
-
         var numberMatch = Regex.Match(verb, @"^\d+");
         var percentMatch = Regex.Match(verb, @"^(?<percent>\d+)%");
         var allMatch = Regex.Match(verb, @"all", RegexOptions.IgnoreCase);

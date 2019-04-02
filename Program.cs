@@ -24,7 +24,7 @@ namespace DitsyTwitch
 {
     public class Program
     {
-        public static async void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var bot = new DitsyBot();
             await bot.Initialize();
@@ -58,7 +58,6 @@ namespace DitsyTwitch
             client.OnJoinedChannel += (s, e) =>
             {
                 Console.WriteLine("Joined server.");
-                //client.SendMessage(e.Channel, "Hi! This is a test.");
             };
             client.OnNewSubscriber += (s, e) =>
             {
