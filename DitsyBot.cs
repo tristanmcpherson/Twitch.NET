@@ -42,7 +42,7 @@ namespace DitsyTwitch
             client.Initialize(credentials, "shredder89100");
 
             // Use dependency injection to retrieve module parameters
-            var modules = BotModule.GetModules(client, api);
+            Modules = BotModule.GetModules(client, api);
 
             await Task.WhenAll(Modules.Select(m => m.Initialize()));
 
@@ -66,24 +66,27 @@ namespace DitsyTwitch
                 client.SendMessage(e.Channel, $"Thanks for resubbing {e.ReSubscriber}! You've been a Ghoul for {e.ReSubscriber.Months} months!");
             };
 
-            client.OnMessageReceived += async (s, e) =>
-            {
-                var chatMessage = e.ChatMessage;
-                var message = chatMessage.Message.ToLower();
-                var parts = message.Split(' ');
-                var commandName = parts[0];
-                var arguments = parts.Skip(1).ToArray();
-
-                foreach (var module in modules) {
-                    var commands = module.Commands.Where(c => GlobalPrefix + c.Name.ToLower() == commandName);
-
-                    foreach (var command in commands) {
-                        await command.Execute.Invoke(chatMessage, arguments);
-                    }
-                }
-            };
+            client.OnMessageReceived += async (s, e) => await ProcessCommand(e.ChatMessage);
 
             client.Connect();
+        }
+
+        public async Task ProcessCommand(ChatMessage chatMessage)
+        {
+            var message = chatMessage.Message.ToLower();
+            var parts = message.Split(' ');
+            var commandName = parts[0];
+            var arguments = parts.Skip(1).ToArray();
+
+            foreach (var module in Modules)
+            {
+                var commands = module.Commands.Where(c => GlobalPrefix + c.Name.ToLower() == commandName);
+
+                foreach (var command in commands)
+                {
+                    await command.Execute.Invoke(chatMessage, arguments);
+                }
+            }
         }
     }
 }

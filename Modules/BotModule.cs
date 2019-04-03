@@ -55,7 +55,9 @@ namespace DitsyTwitch.Modules
             return modules;
         }
 
-        public abstract Task Initialize();
+        public virtual Task Initialize() {
+            return Task.CompletedTask;
+        }
 
         public void Debug(string message)
         {
