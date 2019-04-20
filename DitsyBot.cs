@@ -39,7 +39,7 @@ namespace DitsyTwitch
             var credentials = new ConnectionCredentials("ditsyghostbot", botConfig.OAuth);
             api.Settings.ClientId = botConfig.ClientId;
 
-            client.Initialize(credentials, "shredder89100");
+            client.Initialize(credentials, "ditsyghost");
 
             // Use dependency injection to retrieve module parameters
             Modules = BotModule.GetModules(client, api);

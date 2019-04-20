@@ -24,7 +24,7 @@ namespace DitsyTwitch.Facades
 
         public async Task<List<GambleInfo>> GetLeaderboard(string channel)
         {
-            return await GambleCollection.Find(FilterBuilder.Eq(x => x.Channel, channel)).SortByDescending(gi => gi.Points).Limit(10).ToListAsync();
+            return await GambleCollection.Find(FilterBuilder.Eq(x => x.Channel, channel)).SortByDescending(gi => gi.Points).Limit(5).ToListAsync();
         }
 
         public async Task<long> GetLeaderboardPosition(string channel, string username)
