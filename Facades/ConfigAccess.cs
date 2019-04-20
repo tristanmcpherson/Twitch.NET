@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using MongoDB.Driver;
 
-namespace DitsyTwitch.Facades
+namespace TwitchBot.Facades
 {
     public class ConfigFacade : MongoFacade
     {

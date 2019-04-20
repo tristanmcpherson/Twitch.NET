@@ -1,11 +1,11 @@
 using System.Threading.Tasks;
-using DitsyTwitch.Attributes;
-using DitsyTwitch.Utilities;
+using TwitchBot.Utilities;
+using TwitchBot.Attributes;
 using TwitchLib.Api;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 
-namespace DitsyTwitch.Modules {
+namespace TwitchBot.Modules {
     [Module]
     public class InfoModule : BotModule {
         public InfoModule(TwitchClient client, TwitchAPI api) : base(client, api)

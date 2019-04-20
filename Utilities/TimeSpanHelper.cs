@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DitsyTwitch.Utilities
+namespace TwitchBot.Utilities
 {
     static class TimeSpanHelper
     {

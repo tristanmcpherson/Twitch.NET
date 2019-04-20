@@ -1,12 +1,12 @@
 using System;
 
-namespace DitsyTwitch.Attributes
+namespace TwitchBot.Attributes
 {
 
-    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
     public class CommandAttribute : Attribute
     {
-        public string CommandName { get; set; }
+        public string CommandName { get; }
         public CommandAttribute(string commandName)
         {
             CommandName = commandName;

@@ -5,16 +5,16 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using DitsyTwitch;
-using DitsyTwitch.Attributes;
-using DitsyTwitch.Facades;
+using TwitchBot;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using TwitchBot.Attributes;
+using TwitchBot.Facades;
 using TwitchLib.Api;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 
-namespace DitsyTwitch.Modules
+namespace TwitchBot.Modules
 {
     [Module]
     public class GamblingModule : BotModule

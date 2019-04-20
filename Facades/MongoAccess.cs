@@ -1,6 +1,6 @@
 using MongoDB.Driver;
 
-namespace DitsyTwitch.Facades
+namespace TwitchBot.Facades
 {
     public abstract class MongoFacade
     {

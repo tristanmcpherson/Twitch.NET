@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DitsyTwitch;
+using TwitchBot;
 using MongoDB.Driver;
 
-namespace DitsyTwitch.Facades
+namespace TwitchBot.Facades
 {
     public class GambleFacade : MongoFacade
     {

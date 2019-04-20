@@ -5,16 +5,16 @@ using TwitchLib.Client.Models;
 using System.Threading.Tasks;
 using TwitchLib.Api;
 using System.Linq;
-using DitsyTwitch.Facades;
-using DitsyTwitch.Modules;
+using TwitchBot.Facades;
+using TwitchBot.Modules;
 
-namespace DitsyTwitch
+namespace TwitchBot
 {
 
-    public class DitsyBot
+    public class TwitchBot
     {
-        private TwitchClient client;
-        private TwitchAPI api;
+        private readonly TwitchClient _client;
+        private readonly TwitchAPI _api;
 
         //public List<BotModule> Modules { get; set; }
 
@@ -24,54 +24,58 @@ namespace DitsyTwitch
 
         public ConfigFacade ConfigFacade { get; set; }
 
-        public DitsyBot()
+        public TwitchBot()
         {
             Modules = new List<BotModule>();
             ConfigFacade = new ConfigFacade();
 
-            client = new TwitchClient();
-            api = new TwitchAPI();
+            _client = new TwitchClient();
+            _api = new TwitchAPI();
         }
 
         public async Task Initialize()
         {
             var botConfig = await ConfigFacade.GetConfig();
             var credentials = new ConnectionCredentials("ditsyghostbot", botConfig.OAuth);
-            api.Settings.ClientId = botConfig.ClientId;
+            _api.Settings.ClientId = botConfig.ClientId;
 
-            client.Initialize(credentials, "ditsyghost");
+            _client.Initialize(credentials, "ditsyghost");
 
             // Use dependency injection to retrieve module parameters
-            Modules = BotModule.GetModules(client, api);
 
-            await Task.WhenAll(Modules.Select(m => m.Initialize()));
+	        BotModule.Client = _client;
+			BotModule.Api = _api;
 
-            client.OnConnected += (s, e) =>
+	        Modules = BotModule.GetModules(_client, _api);
+
+			await Task.WhenAll(Modules.Select(m => m.Initialize()));
+
+            _client.OnConnected += (s, e) =>
             {
                 Console.WriteLine($"Connected to {e.AutoJoinChannel}");
             };
 
-            client.OnJoinedChannel += (s, e) =>
+            _client.OnJoinedChannel += (s, e) =>
             {
                 Console.WriteLine("Joined server.");
             };
 
-            client.OnNewSubscriber += (s, e) =>
+            _client.OnNewSubscriber += (s, e) =>
             {
-                client.SendMessage(e.Channel, $"Welcome to the Ghouls {e.Subscriber}!");
+                _client.SendMessage(e.Channel, $"Welcome to the Ghouls {e.Subscriber}!");
             };
 
-            client.OnReSubscriber += (s, e) =>
+            _client.OnReSubscriber += (s, e) =>
             {
-                client.SendMessage(e.Channel, $"Thanks for resubbing {e.ReSubscriber}! You've been a Ghoul for {e.ReSubscriber.Months} months!");
+                _client.SendMessage(e.Channel, $"Thanks for resubbing {e.ReSubscriber}! You've been a Ghoul for {e.ReSubscriber.Months} months!");
             };
 
-            client.OnMessageReceived += async (s, e) => await ProcessCommand(e.ChatMessage);
+            _client.OnMessageReceived += async (s, e) => await ProcessCommand(e.ChatMessage);
 
-            client.Connect();
+            _client.Connect();
         }
 
-        public async Task ProcessCommand(ChatMessage chatMessage)
+        public static async Task ProcessCommand(ChatMessage chatMessage)
         {
             var message = chatMessage.Message.ToLower();
             var parts = message.Split(' ');

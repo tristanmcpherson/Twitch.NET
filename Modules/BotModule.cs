@@ -8,14 +8,14 @@ using TwitchLib.Api;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
-using DitsyTwitch.Attributes;
 using System.IO;
+using TwitchBot.Attributes;
 
-namespace DitsyTwitch.Modules
+namespace TwitchBot.Modules
 {
     public abstract class BotModule
     {
-        internal List<Command> Commands = new List<Command>();
+        internal List<Command.Command> Commands = new List<Command.Command>();
         public static TwitchClient Client { get; set; }
         public static TwitchAPI Api { get; set; }
         public const string GlobalPrefix = "!";
@@ -57,10 +57,10 @@ namespace DitsyTwitch.Modules
                             .Where(m => m.ReturnType == typeof(Task) && m.GetParameters().First().ParameterType == typeof(ChatMessage))
                             .ToArray();
 
-                    var commands = methods.Select(m => new Command
+                    var commands = methods.Select(m => new Command.Command
                     {
                         Name = m.GetCustomAttribute<CommandAttribute>().CommandName,
-                        Execute = (Command.CommandDelegate)m.CreateDelegate(typeof(Command.CommandDelegate), module)
+                        Execute = (Command.Command.CommandDelegate)m.CreateDelegate(typeof(Command.Command.CommandDelegate), module)
                     }).ToList();
 
                     module.Commands = commands;
