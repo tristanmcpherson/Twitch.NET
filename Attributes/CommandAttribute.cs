@@ -1,6 +1,6 @@
 using System;
 
-namespace TwitchBot.Attributes
+namespace TwitchNET.Attributes
 {
 
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]

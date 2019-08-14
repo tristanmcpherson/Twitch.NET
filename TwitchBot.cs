@@ -5,10 +5,12 @@ using TwitchLib.Client.Models;
 using System.Threading.Tasks;
 using TwitchLib.Api;
 using System.Linq;
-using TwitchBot.Facades;
-using TwitchBot.Modules;
+using TwitchNET.Modules;
+using TwitchNET.Parsing;
+using System.Reflection.Emit;
+using System.Reflection;
 
-namespace TwitchBot
+namespace TwitchNET
 {
 
     public class TwitchBot
@@ -16,39 +18,26 @@ namespace TwitchBot
         private readonly TwitchClient _client;
         private readonly TwitchAPI _api;
 
-        //public List<BotModule> Modules { get; set; }
+        public static string Prefix = "!";
 
-        public const string GlobalPrefix = "!";
+        private List<Command> Commands;
+        private IServiceProvider mServiceProvider;
 
-        public static List<BotModule> Modules { get; set; }
-
-        public ConfigFacade ConfigFacade { get; set; }
-
-        public TwitchBot()
+        public TwitchBot(ConnectionCredentials credentials, string accessToken, string clientID)
         {
-            Modules = new List<BotModule>();
-            ConfigFacade = new ConfigFacade();
-
             _client = new TwitchClient();
+            _client.SetConnectionCredentials(credentials);
+
             _api = new TwitchAPI();
+            _api.Settings.AccessToken = accessToken;
+            _api.Settings.ClientId = clientID;
         }
 
-        public async Task Initialize()
+        public void Initialize(IServiceProvider serviceProvider)
         {
-            var botConfig = await ConfigFacade.GetConfig();
-            var credentials = new ConnectionCredentials("ditsyghostbot", botConfig.OAuth);
-            _api.Settings.ClientId = botConfig.ClientId;
+            mServiceProvider = serviceProvider;
 
-            _client.Initialize(credentials, "ditsyghost");
-
-            // Use dependency injection to retrieve module parameters
-
-	        BotModule.Client = _client;
-			BotModule.Api = _api;
-
-	        Modules = BotModule.GetModules(_client, _api);
-
-			await Task.WhenAll(Modules.Select(m => m.Initialize()));
+	        Commands = Command.GetCommands();
 
             _client.OnConnected += (s, e) =>
             {
@@ -62,12 +51,10 @@ namespace TwitchBot
 
             _client.OnNewSubscriber += (s, e) =>
             {
-                _client.SendMessage(e.Channel, $"Welcome to the Ghouls {e.Subscriber}!");
             };
 
             _client.OnReSubscriber += (s, e) =>
             {
-                _client.SendMessage(e.Channel, $"Thanks for resubbing {e.ReSubscriber}! You've been a Ghoul for {e.ReSubscriber.Months} months!");
             };
 
             _client.OnMessageReceived += async (s, e) => await ProcessCommand(e.ChatMessage);
@@ -75,22 +62,51 @@ namespace TwitchBot
             _client.Connect();
         }
 
-        public static async Task ProcessCommand(ChatMessage chatMessage)
+        public async Task ProcessCommand(ChatMessage chatMessage)
         {
             var message = chatMessage.Message.ToLower();
             var parts = message.Split(' ');
             var commandName = parts[0];
             var arguments = parts.Skip(1).ToArray();
 
-            foreach (var module in Modules)
+            var potentialCommands = Commands.Where(c => Prefix + c.Name.ToLower() == commandName).ToList();
+            if (potentialCommands.Count == 0)
             {
-                var commands = module.Commands.Where(c => GlobalPrefix + c.Name.ToLower() == commandName);
+                return;
+            }
 
-                foreach (var command in commands)
+            var (command, args) = GetMatchingCommandByArgs(potentialCommands, arguments);
+
+            if (command == null)
+            {
+                return;
+            }
+
+            var instance = command.CreateModuleInstance();
+            var task = command.CreateTask(args);
+            await task?.Invoke(instance, args?.ToArray());
+        }
+
+        
+
+        public static (Command, object[]) GetMatchingCommandByArgs(IEnumerable<Command> commands, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                return (commands.First(), null);
+            }
+
+            foreach (var command in commands)
+            {
+                var parses = command.Arguments.Select(a => Command.ParseArgument[a]).ToList();
+                var outputs = args.Select((a,i) => parses[i](a));
+                if (outputs.All((parseOutput) => parseOutput.Item1))
                 {
-                    await command.Execute.Invoke(chatMessage, arguments);
+                    return (command, outputs.Select(o => o.Item2).ToArray());
                 }
             }
+
+            return (null, null);
         }
     }
 }
