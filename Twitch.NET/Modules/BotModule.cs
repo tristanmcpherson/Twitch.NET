@@ -1,13 +1,15 @@
 using System;
 using System.Threading.Tasks;
 using TwitchLib.Api;
+using TwitchLib.Api.Interfaces;
 using TwitchLib.Client;
+using TwitchLib.Client.Interfaces;
 using TwitchLib.Client.Models;
 
 
 namespace TwitchNET.Modules
 {
-    public abstract class ChatContext
+    public class ChatContext
     {
         public string Username { get; set; }
 
@@ -16,20 +18,21 @@ namespace TwitchNET.Modules
         public ChatMessage ChatMessage { get; set; }
     }
 
-    public abstract class BotModule
+    public abstract class ModuleBase
     {
-        protected TwitchClient Client { get; set; }
+        protected ITwitchClient Client { get; set; }
 
-        protected TwitchAPI Api { get; set; }
+        protected ITwitchAPI Api { get; set; }
 
         public ChatContext Context { get; set; }
 
         public const string GlobalPrefix = "!";
 
-        public void Initialize(TwitchClient client, TwitchAPI api)
+        public void Initialize(ITwitchClient client, ITwitchAPI api, ChatContext context)
         {
             Client = client;
             Api = api;
+            Context = context;
         }
 
         public virtual Task Initialize() => Task.CompletedTask;

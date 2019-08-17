@@ -14,12 +14,12 @@ namespace TwitchNET.Parsing
 {
 	public class Command
     {
-        public delegate Task CommandDelegate(BotModule instance, object[] arguments);
-        public delegate BotModule CreateModule();
-        public CreateModule CreateModuleInstance { get; set; }
+        public delegate Task CommandDelegate(ModuleBase instance, object[] arguments);
+        //public delegate ModuleBase CreateModule();
+        public Func<ModuleBase> CreateModuleInstance { get; set; }
         public string Name { get; set; }
         public MethodInfo Method { get; set; }
-	    public IEnumerable<Type> Arguments { get; set; }
+	    public List<Type> Arguments { get; set; }
 
         public static Dictionary<Type, Func<string, (bool, object)>> ParseArgument =
             new Dictionary<Type, Func<string, (bool, object)>>
@@ -31,11 +31,11 @@ namespace TwitchNET.Parsing
                 { typeof(double), s => (double.TryParse(s, out var val), val) }
             };
 
-        public static List<Command> GetCommands()
+        public static List<Command> GetCommands(IServiceProvider provider)
         {
             var assemblies = new List<Assembly>
             {
-                Assembly.GetExecutingAssembly()
+                Assembly.GetEntryAssembly()
             };
 
             var executingPath = assemblies.First().Location;
@@ -45,7 +45,7 @@ namespace TwitchNET.Parsing
             {
                 var rawAssembly = File.ReadAllBytes(file);
                 var assembly = Assembly.Load(rawAssembly);
-                var hasModules = assembly.GetTypes().Any(t => t.IsClass && typeof(BotModule).IsAssignableFrom(t));
+                var hasModules = assembly.GetTypes().Any(t => t.IsClass && typeof(ModuleBase).IsAssignableFrom(t));
                 if (hasModules)
                 {
                     assemblies.Add(assembly);
@@ -56,25 +56,43 @@ namespace TwitchNET.Parsing
 
             foreach (var assembly in assemblies)
             {
-                var moduleTypes = assembly.GetTypes().Where(t => typeof(BotModule).IsAssignableFrom(t));
+                var moduleTypes = assembly.GetTypes().Where(t => t.IsClass && !t.IsAbstract && typeof(ModuleBase).IsAssignableFrom(t));
 
                 foreach (var moduleType in moduleTypes)
                 {
                     var methods = moduleType.GetMethods()
                             .Where(m => m.GetCustomAttribute<CommandAttribute>() != null)
-                            .Where(m => m.ReturnType == typeof(Task) && m.GetParameters().First().ParameterType == typeof(ChatMessage))
+                            .Where(m => m.ReturnType == typeof(Task))
                             .ToArray();
 
-                    var constructorInfo = moduleType.GetConstructor(Type.EmptyTypes);
-                    var newExpression = Expression.New(constructorInfo);
+                    var constructorInfos = moduleType.GetConstructors();
+                    var firstConstructor = constructorInfos.FirstOrDefault();
+                    if (firstConstructor == null)
+                    {
+                        continue;
+                    }
+
+                    var paramTypes = firstConstructor.GetParameters();
+
+                    var providerExpression = Expression.Constant(provider);
+                    var paramResolvers = new List<Expression>();
+
+                    foreach (var paramType in paramTypes)
+                    {
+                        Expression<Func<object>> getService = () => GetService(provider, paramType.ParameterType);
+                        var invokeAndConvert = Expression.Convert(Expression.Invoke(getService), paramType.ParameterType);
+                        paramResolvers.Add(invokeAndConvert);
+                    }
+
+                    var newExpression = Expression.New(firstConstructor, paramResolvers);
                     var newLambda = Expression.Lambda(newExpression);
 
                     commands.AddRange(methods.Select(method => new Command
                     {
                         Name = method.GetCustomAttribute<CommandAttribute>().CommandName,
-                        Arguments = method.GetParameters().Select(p => p.ParameterType),
                         Method = method,
-                        CreateModuleInstance = ((CreateModule)newLambda.Compile())
+                        Arguments = method.GetParameters().Select(p => p.ParameterType).ToList(),
+                        CreateModuleInstance = (Func<ModuleBase>)newLambda.Compile()
                     }));
                 }
             }
@@ -82,18 +100,23 @@ namespace TwitchNET.Parsing
             return commands;
         }
 
-        public Command.CommandDelegate CreateTask(object[] args)
+        private static object GetService(IServiceProvider sp, Type t)
         {
-            DynamicMethod dynamicMethod = new DynamicMethod("ExecuteCommand", typeof(Task), new[] { typeof(BotModule), typeof(ChatMessage), typeof(object[]) });
+            Console.WriteLine("getting service, pls no at wrong timer");
+            return sp.GetService(t);
+        }
+
+        public CommandDelegate CreateTask(object[] args)
+        {
+            DynamicMethod dynamicMethod = new DynamicMethod("ExecuteCommand", typeof(Task), new[] { typeof(ModuleBase), typeof(object[]) });
             var il = dynamicMethod.GetILGenerator();
             il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Ldarg_1);
 
             if (args != null)
             {
                 for (int i = 0; i < args.Length; i++)
                 {
-                    il.Emit(OpCodes.Ldarg_2);
+                    il.Emit(OpCodes.Ldarg_1);
                     il.Emit(OpCodes.Ldc_I4, i);
 
                     var arg = args[i];
@@ -110,7 +133,7 @@ namespace TwitchNET.Parsing
 
             il.EmitCall(OpCodes.Call, Method, null);
             il.Emit(OpCodes.Ret);
-            return (Command.CommandDelegate)dynamicMethod.CreateDelegate(typeof(Command.CommandDelegate));
+            return (CommandDelegate)dynamicMethod.CreateDelegate(typeof(CommandDelegate));
         }
     }
 }

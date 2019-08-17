@@ -1,0 +1,25 @@
+﻿syntax = "proto3";
+
+package Chat;
+
+service TwitchChat {
+	//rpc SendMessage(ChatMessage) returns (Empty);
+	rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+}
+
+message MessageRequest {
+	int64 TimeBefore = 1;
+}
+
+message Channel {
+	string Name = 1;
+}
+
+message ChatMessage {
+	Channel Channel = 1;
+	string Author = 2;
+	string Text = 3;
+	int64 TimeStamp = 4;
+}
+
+message Empty { }
