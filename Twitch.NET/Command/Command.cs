@@ -74,36 +74,30 @@ namespace TwitchNET.Parsing
 
                     var paramTypes = firstConstructor.GetParameters();
 
-                    var providerExpression = Expression.Constant(provider);
                     var paramResolvers = new List<Expression>();
 
                     foreach (var paramType in paramTypes)
                     {
-                        Expression<Func<object>> getService = () => GetService(provider, paramType.ParameterType);
+                        Expression<Func<object>> getService = () => provider.GetService(paramType.ParameterType);
                         var invokeAndConvert = Expression.Convert(Expression.Invoke(getService), paramType.ParameterType);
                         paramResolvers.Add(invokeAndConvert);
                     }
 
                     var newExpression = Expression.New(firstConstructor, paramResolvers);
                     var newLambda = Expression.Lambda(newExpression);
+                    var func = (Func<ModuleBase>)newLambda.Compile();
 
                     commands.AddRange(methods.Select(method => new Command
                     {
                         Name = method.GetCustomAttribute<CommandAttribute>().CommandName,
                         Method = method,
                         Arguments = method.GetParameters().Select(p => p.ParameterType).ToList(),
-                        CreateModuleInstance = (Func<ModuleBase>)newLambda.Compile()
+                        CreateModuleInstance = func
                     }));
                 }
             }
 
             return commands;
-        }
-
-        private static object GetService(IServiceProvider sp, Type t)
-        {
-            Console.WriteLine("getting service, pls no at wrong timer");
-            return sp.GetService(t);
         }
 
         public CommandDelegate CreateTask(object[] args)
