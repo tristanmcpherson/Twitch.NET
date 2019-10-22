@@ -19,7 +19,7 @@ namespace TwitchNET.Parsing
         public Func<ModuleBase> CreateModuleInstance { get; set; }
         public string Name { get; set; }
         public MethodInfo Method { get; set; }
-	    public List<Type> Arguments { get; set; }
+	public List<Type> Arguments { get; set; }
 
         public static Dictionary<Type, Func<string, (bool, object)>> ParseArgument =
             new Dictionary<Type, Func<string, (bool, object)>>
