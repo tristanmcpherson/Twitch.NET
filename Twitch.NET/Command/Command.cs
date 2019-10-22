@@ -12,7 +12,7 @@ using System.Reflection.Emit;
 
 namespace TwitchNET.Parsing
 {
-	public class Command
+    public class Command
     {
         public delegate Task CommandDelegate(ModuleBase instance, object[] arguments);
         //public delegate ModuleBase CreateModule();
